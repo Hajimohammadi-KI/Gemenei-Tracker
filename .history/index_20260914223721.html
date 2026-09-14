@@ -1264,8 +1264,6 @@
         }
 
         function appendTaskLog(taskKey, item, idx, checked) {
-            if (!checked || !item) return;
-
             const logKey = TASK_LOG_KEY;
             let logs = [];
             try {
@@ -1287,14 +1285,11 @@
                 createdAt: now.toISOString()
             };
 
-            logs.push(log);
-            localStorage.setItem(logKey, JSON.stringify(logs));
+            if (checked) {
+                logs.push(log);
+            }
 
-            fetch('/api/task-log', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(log)
-            }).catch(() => {});
+            localStorage.setItem(logKey, JSON.stringify(logs));
         }
 
         function collectWeekOptions() {
