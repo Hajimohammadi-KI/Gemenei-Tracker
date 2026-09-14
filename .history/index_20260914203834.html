@@ -1234,26 +1234,14 @@
 
         // Local Storage state management
         const DB_KEY = "GEMENEI_TRACKER_DATA_PRO";
-        const NOTES_DIR = "notes";
         let userState = JSON.parse(localStorage.getItem(DB_KEY)) || {};
-
-        const weekDropdown = document.getElementById("week-dropdown");
-
-        function collectWeekOptions() {
-            const weekOptions = [];
-            for (let i = 1; i <= 35; i++) {
-                weekOptions.push(`<option value="${i}">Woche ${i}</option>`);
-            }
-            weekDropdown.innerHTML = `<option value="all">Alle Wochen</option>` + weekOptions.join('');
-        }
 
         function persistState() {
             localStorage.setItem(DB_KEY, JSON.stringify(userState));
             refreshDashboardMetrics();
         }
 
-        let currentFilterMonth = "all";
-        let currentFilterWeek = "all";
+        let currentFilterMonth = "1";
         let currentSearchQuery = "";
         let currentActiveDay = 1;
 
@@ -1328,13 +1316,12 @@
 
             const filtered = fullSchedule.filter(item => {
                 const matchMonth = (currentFilterMonth === "all" || item.month.toString() === currentFilterMonth);
-                const matchWeek = (currentFilterWeek === "all" || Math.ceil(item.day / 7).toString() === currentFilterWeek);
                 const matchSearch = item.title.toLowerCase().includes(currentSearchQuery) ||
                                     item.tasks.some(t => t.toLowerCase().includes(currentSearchQuery));
-                return matchMonth && matchWeek && matchSearch;
+                return matchMonth && matchSearch;
             });
 
-            document.getElementById("task-list-count").innerText = `${filtered.length} Tage sichtbar`;
+            document.getElementById("task-list-count").innerText = `${filtered.length} روز نمایش داده شده`;
 
             filtered.forEach(item => {
                 item.tasks.forEach((task, idx) => {
@@ -1346,22 +1333,10 @@
                     li.innerHTML = `
                         <input type="checkbox" class="task-checkbox" ${isDone ? 'checked' : ''} onchange="toggleTask(${item.day}, ${idx}, this.checked)">
                         <div class="task-content">
-                            <div class="task-text">[Tag ${item.day} - Monat ${item.month}] ${task}</div>
-                            <div class="task-reference">Referenz: ${item.reference}</div>
+                            <div class="task-text">[روز ${item.day} - ماه ${item.month}] ${task}</div>
+                            <div class="task-reference">مرجع: ${item.reference}</div>
                         </div>
-                        <div class="note-panel">
-                            <div class="day-card-head">
-                                <span class="day-card-title">Tag ${item.day} / Monat ${item.month}</span>
-                                <span class="day-card-meta">Woche ${Math.ceil(item.day / 7)}</span>
-                            </div>
-                            <textarea class="note-area" data-day="${item.day}" placeholder="Notiz für diesen Tag...">${getNote(item.day) || ''}</textarea>
-                            <div class="note-panel-actions">
-                                <input class="day-file-input" type="file" data-day="${item.day}" accept=".json,.txt,.md,.csv,.pdf,.png,.jpg,.jpeg,.zip,.doc,.docx,.html,.xml">
-                                <button class="save-note-btn" onclick="saveDayNote(${item.day})">Notiz speichern</button>
-                            </div>
-                            <div class="uploaded-files-list" id="files-${item.day}">${renderFiles(item.day)}</div>
-                        </div>
-                        <button class="btn-shadow-modal" onclick="openShadowModal(${item.day})">Shadowing</button>
+                        <button class="btn-shadow-modal" onclick="openShadowModal(${item.day})">تمرین گفتاری</button>
                     `;
                     listArea.appendChild(li);
                 });
@@ -1393,62 +1368,9 @@
             refreshDashboardMetrics();
         }
 
-        function onWeekChange(val) {
-            currentFilterWeek = val;
-            renderTasks();
-            refreshDashboardMetrics();
-        }
-
         function onSearchChange(val) {
             currentSearchQuery = val.toLowerCase().trim();
             renderTasks();
-        }
-
-        function getNote(day) {
-            const file = `notes/day_${day}_note.json`;
-            try {
-                if (localStorage.getItem(file)) return JSON.parse(localStorage.getItem(file)).note || '';
-            } catch (e) {}
-            return '';
-        }
-
-        function renderFiles(day) {
-            const file = `notes/day_${day}_note.json`;
-            try {
-                const data = JSON.parse(localStorage.getItem(file) || '{}');
-                if (!data.files || !data.files.length) return '';
-                return data.files.map(f => `<span class="uploaded-file-chip">${f.name}</span>`).join('');
-            } catch (e) { return ''; }
-        }
-
-        function saveDayNote(day) {
-            const li = event ? event.target.closest('li') : null;
-            const textarea = li ? li.querySelector('.note-area') : null;
-            const fileInput = li ? li.querySelector('.day-file-input') : null;
-            const note = textarea ? textarea.value : '';
-            const record = {day, note, files: [], updated_at: Date.now()};
-            const file = `notes/day_${day}_note.json`;
-            const existing = JSON.parse(localStorage.getItem(file) || '{}');
-            if (existing.files) record.files = existing.files;
-            if (fileInput && fileInput.files && fileInput.files.length) {
-                const uploaded = fileInput.files[0];
-                const ext = uploaded.name.includes('.') ? uploaded.name.slice(uploaded.name.lastIndexOf('.')) : '.bin';
-                const safeName = `day_${day}_${Date.now()}_${uploaded.name.replace(/[^a-zA-Z0-9_.-]/g, '_')}`;
-                const target = `${NOTES_DIR}/${safeName}`;
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const data = new Uint8Array(e.target.result);
-                    const fs = require('fs');
-                    try { fs.mkdirSync(NOTES_DIR, {recursive: true}); fs.writeFileSync(target, Buffer.from(data)); } catch (err) {}
-                    record.files.push({name: safeName, original: uploaded.name, path: target});
-                    localStorage.setItem(file, JSON.stringify(record));
-                    renderTasks();
-                };
-                reader.readAsArrayBuffer(uploaded);
-            } else {
-                localStorage.setItem(file, JSON.stringify(record));
-                renderTasks();
-            }
         }
 
         function jumpToActiveDay() {
@@ -1535,7 +1457,6 @@
         }
 
         // Initialization
-        collectWeekOptions();
         persistState();
         renderTasks();
     </script>
